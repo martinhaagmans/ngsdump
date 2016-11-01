@@ -16,7 +16,7 @@ Deployed in a folder with VCF files with combines all VCF files into combined.vc
 
 ############read config file
 
-my $config = "/home/corona/Desktop/martin/ZaaGnome.INI" ; my %config ; 
+my $config = "ZaaGnome.INI" ; my %config ; 
 Config::Simple->import_from ("$config", \%config ) ;
 my($reference,$java,$gatk) ;  
 my @files ; 
