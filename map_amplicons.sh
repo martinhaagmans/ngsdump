@@ -1,8 +1,9 @@
 #!/bin/sh
 
 # $REF should be set
-if ! [ -z ${REF+x} ]; then
+if [ -z ${REF+x} ]; then
   echo "REF is unset"
+  exit
 fi
 
 for i in $(ls *.gz | cut -d "_" -f 1 | sort | uniq) ; do
