@@ -17,6 +17,8 @@ def run_command(command):
     subprocess.call(command, shell=True, stderr=logging.INFO)
 
 def call_snpcheck(bam):
+    "Call SNP's with GATK, parse VCF and return dictionary"
+    
     command = f'''{JAVA} -jar {GATK} -R {REF} -T HaplotypeCaller \
     -I {bam} -o {bam}.vcf -L {ALLELES} -alleles {ALLELES} \
     -gt_mode GENOTYPE_GIVEN_ALLELES -GQB 0
@@ -27,7 +29,6 @@ def call_snpcheck(bam):
         logging.error(f'{e}')
     else:
         snp_dict = parse_ngssnpcheck(f'{i}.vcf')
-
     return snp_dict
 
     
