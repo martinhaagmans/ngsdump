@@ -33,7 +33,7 @@ def call_snpcheck(bam):
     
 if __name__ == '__main__':
 
-    logging.basicConfig(level=logging.DEBUG, filename='example.log')    
+    logging.basicConfig(level=logging.DEBUG, filename='SNPcheckCaller.log')    
     
     run_command('map_amplicons.sh')
     
