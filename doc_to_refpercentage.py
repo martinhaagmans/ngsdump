@@ -17,6 +17,7 @@ def get_loci_from_docfile(docfile):
         for line in f:
             locus, *_ = line.split('\t')
             loci.append(locus)
+    return loci
         
 
 loci = get_loci_from_docfile(PATIENTDOC)
