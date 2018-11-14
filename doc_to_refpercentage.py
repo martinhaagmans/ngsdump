@@ -59,7 +59,7 @@ def get_ref_dict(REFERENCE):
     return refd
 
 
-def create_output(outfile, sample_data, control_data, loci):
+def create_output(outfile, sample_data, control_data, loci, allIDs):
     allout = dict()
     
     for locus in loci:
@@ -75,9 +75,15 @@ def create_output(outfile, sample_data, control_data, loci):
         allout[locus] = out
 
             
-    with open(outfile, 'w') as f_out:            
+    with open(outfile, 'w') as f_out:    
+        f_out.write('Locus')
+        
+        for id in allIDs:
+            f_out.write(f'\t{id} DP\t{id} refP\t{id} nonref')
+        f_out.write('\n')
+        
         for locus in loci:
-            f_out.write(f'{locus}\t')
+            f_out.write(f'{locus}')
             
             for _ in allout[locus]:
                 f_out.write(f'\t{_.DP}\t{100*_.refpercentage:.3f}\t{_.nonreflist}')
@@ -107,16 +113,23 @@ if __name__ == '__main__':
     
     data_sample = list()
     data_control = list()
+    allIDs = list()
     
     if len(args.sample) == 1:
         data_sample.append(parse_doc(args.sample[0], refd, loci))
+        allIDs.append(args.sample[0].split('.')[0])
     else:
-        [(data_sample.append(parse_doc(_, refd, loci))) for _ in args.sample]
+        for _ in args.sample:
+            data_sample.append(parse_doc(_, refd, loci))
+            allIDs.append(_.split('.')[0])
         
     if len(args.sample) == 1:
         data_control.append(parse_doc(args.control[0], refd, loci))
+        allIDs.append(args.control[0].split('.')[0])
     else:
-        [(data_control.append(parse_doc(_, refd, loci))) for _ in args.control]
+        for _ in args.control:
+            data_control.append(parse_doc(_, refd, loci))
+            allIDs.append(_.split('.')[0])
 
-    create_output(args.output, data_sample, data_control, loci)
+    create_output(args.output, data_sample, data_control, loci, allIDs)
 
