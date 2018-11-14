@@ -28,9 +28,9 @@ def parse_doc(fn, ref, loci):
                     refp = basep
                 elif refbase != base:
                     nonref.append((base, basep))
-            if int(DP) > 100:
-                locus_data = namedtuple('mosaic_out', 'DP, refpercentage, nonreflist')
-                data[locus] = locus_data(int(DP), refp, nonref)
+            
+            locus_data = namedtuple('mosaic_out', 'DP, refpercentage, nonreflist')
+            data[locus] = locus_data(int(DP), refp, nonref)
 
     return data
 
@@ -59,37 +59,64 @@ def get_ref_dict(REFERENCE):
     return refd
 
 
-def create_output(outfile, patient, control):
-    with open(outfile, 'w') as f_out:
-        for k, v in patient.items():
-            try:
-                c = control[k]
-            except KeyError:
-                c = 'GeenCoverage'
-            f_out.write(f'{k}\t{v.DP}\t{100*v.refpercentage:.3f}\t{v.nonreflist}\t{c.DP}\t{100*c.refpercentage:3f}\t{c.nonreflist}\n')
+def create_output(outfile, sample_data, control_data, loci):
+    allout = dict()
+    
+    for locus in loci:
+        
+        out = list()
+        
+        for data in sample_data:
+            out.append(data[locus])
+        
+        for data in control_data:
+            out.append(data[locus])
+            
+        allout[locus] = out
+
+            
+    with open(outfile, 'w') as f_out:            
+        for locus in loci:
+            f_out.write(f'{locus}\t')
+            
+            for _ in allout[locus]:
+                f_out.write(f'\t{_.DP}\t{100*_.refpercentage:.3f}\t{_.nonreflist}')
+                
+            f_out.write('\n')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("-s", "--sample", type=str, metavar='',
+    parser.add_argument("-s", "--sample", type=str, metavar='', nargs='*',
                         required=True, help="DoC file(s) van sample(s)")
-    parser.add_argument("-c", "--control", type=str, metavar='',
+    parser.add_argument("-c", "--control", type=str, metavar='', nargs='*',
                         required=True, help="DoC file(s) van controle(s)")
     parser.add_argument("-r", "--reference", type=str, metavar='',
                         default='/home/mahaagmans/Documents/referentie/hg19.fa',
                         help="Reference fasta")
     parser.add_argument("-o", "--output", type=str, metavar='',
                         default='final_output.txt',
-                        help="Reference fasta")
+                        help="Output file name")
 
     args = parser.parse_args()
 
     doc_sample = args.sample
     doc_control = args.control
 
-    loci = get_loci_from_docfile(doc_sample)
+    loci = get_loci_from_docfile(doc_sample[0])
     refd = get_ref_dict(args.reference)
+    
+    data_sample = list()
+    data_control = list()
+    
+    if len(args.sample) == 1:
+        data_sample.append(parse_doc(args.sample[0], refd, loci))
+    else:
+        [(data_sample.append(parse_doc(_, refd, loci))) for _ in args.sample]
+        
+    if len(args.sample) == 1:
+        data_control.append(parse_doc(args.control[0], refd, loci))
+    else:
+        [(data_control.append(parse_doc(_, refd, loci))) for _ in args.control]
 
-    data_sample = parse_doc(args.sample, refd, loci)
-    data_control = parse_doc(args.control, refd, loci)
+    create_output(args.output, data_sample, data_control, loci)
 
-    create_output(args.output, data_sample, data_control)
