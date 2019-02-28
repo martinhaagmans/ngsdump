@@ -6,6 +6,7 @@ import pandas as pd
 
 from collections import namedtuple
 
+
 def parse_doc(fn, ref, loci):
     data = dict()
     with open(fn) as f:
@@ -28,7 +29,7 @@ def parse_doc(fn, ref, loci):
                     refp = basep
                 elif refbase != base:
                     nonref.append((base, basep))
-            
+
             locus_data = namedtuple('mosaic_out', 'DP, refpercentage, nonreflist')
             data[locus] = locus_data(int(DP), refp, nonref)
 
@@ -61,34 +62,34 @@ def get_ref_dict(REFERENCE):
 
 def create_output(outfile, sample_data, control_data, loci, allIDs):
     allout = dict()
-    
+
     for locus in loci:
-        
+
         out = list()
-        
+
         for data in sample_data:
             out.append(data[locus])
-        
+
         for data in control_data:
             out.append(data[locus])
-            
+
         allout[locus] = out
 
-            
-    with open(outfile, 'w') as f_out:    
+    with open(outfile, 'w') as f_out:
         f_out.write('Locus')
-        
+
         for id in allIDs:
             f_out.write(f'\t{id} DP\t{id} refP\t{id} nonref')
         f_out.write('\n')
-        
+
         for locus in loci:
             f_out.write(f'{locus}')
-            
+
             for _ in allout[locus]:
                 f_out.write(f'\t{_.DP}\t{100*_.refpercentage:.3f}\t{_.nonreflist}')
-                
+
             f_out.write('\n')
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -110,11 +111,11 @@ if __name__ == '__main__':
 
     loci = get_loci_from_docfile(doc_sample[0])
     refd = get_ref_dict(args.reference)
-    
+
     data_sample = list()
     data_control = list()
     allIDs = list()
-    
+
     if len(args.sample) == 1:
         data_sample.append(parse_doc(args.sample[0], refd, loci))
         allIDs.append(args.sample[0].split('.')[0])
@@ -122,7 +123,7 @@ if __name__ == '__main__':
         for _ in args.sample:
             data_sample.append(parse_doc(_, refd, loci))
             allIDs.append(_.split('.')[0])
-        
+
     if len(args.sample) == 1:
         data_control.append(parse_doc(args.control[0], refd, loci))
         allIDs.append(args.control[0].split('.')[0])
@@ -132,4 +133,3 @@ if __name__ == '__main__':
             allIDs.append(_.split('.')[0])
 
     create_output(args.output, data_sample, data_control, loci, allIDs)
-

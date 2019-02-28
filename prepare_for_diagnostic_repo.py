@@ -1,5 +1,6 @@
 # coding: utf-8
 import os
+import json
 import logging
 import argparse
 import pybedtools
@@ -35,17 +36,17 @@ def correct_intervals(bed):
 def merge_bed(bed_location):
     filepath, ext = os.path.splitext(bed_location)
     merged_bed_location = ('{}.merged{}'.format(filepath, ext))
-           
+
     if not check_bed_intervals(bed_location):
         bed_location = correct_intervals(bed_location)
-        
+
     bed = pybedtools.BedTool(bed_location)
     bed = bed.sort()
     bed = bed.merge()
     bed.saveas(merged_bed_location)
     return merged_bed_location
-    
-    
+
+
 def check_if_all_intervals_annotated(bed):
     not_annotated_intervals = list()
     for line in bed:
@@ -67,62 +68,30 @@ def get_genes_in_bed(bed):
 def get_genes_from_request_not_in_bed(genes_in_bed, genes_requested):
     not_in_bed = list()
     for gene in genes_requested:
-        if not gene in genes_in_bed and not gene in not_in_bed:
+        if gene not in genes_in_bed and gene not in not_in_bed:
             not_in_bed.append(gene)
     return not_in_bed
 
-    
+
 def get_genes_from_bed_not_in_request(genes_in_bed, genes_requested):
     not_in_request = list()
     for gene in genes_in_bed:
-        if not gene in genes_requested and not gene in not_in_request:
+        if gene not in genes_requested and gene not in not_in_request:
             not_in_request.append(gene)
     return not_in_request
 
 
-def get_nogene_regions(bed):
+def get_nogene_targets(bed):
     nogene_regions = list()
     for line in bed:
         c, s, e, gene, *_ = line
         if gene == 'NOGENE':
-            nogene_regions.append(line)            
+            nogene_regions.append(line)
     return nogene_regions
 
-    
 
+def write_report(genes_not_in_bed, genes_not_in_list, nogene_targets, targetname):
 
-if __name__ == "__main__":
-    basedir = os.path.dirname(os.path.realpath(__file__))
-    log = os.path.join(basedir, 'samplesheets.log')
-    logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s')
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.DEBUG)
-
-    parser = argparse.ArgumentParser(description="Check BED for targetrepo")
-    parser.add_argument('-b', '--bedfile', type=str, required=True,
-                        help='BED-file to check') 
-    parser.add_argument('-g', '--genes', type=str,
-                        help='Genelist to check')                         
-    
-    args = parser.parse_args()
-    bed_input = args.bedfile
-    bed_merged = merge_bed(bed_input)
-
-    logger.info('BED merged.')
-    
-    base = os.path.basename(bed_input)
-    targetname, ext = os.path.splitext(base)
-    
-    TA = TargetAnnotation(bed_merged, genes=args.genes)
-    
-    bed_annotated = TA.annotate_bed_and_filter_genes()
-    genelist = TA.genes
-    
-    nogene_regions = get_nogene_regions(bed_annotated)
-    genes_in_bed = get_genes_in_bed(bed_annotated)
-    genes_not_in_bed = get_genes_from_request_not_in_bed(genes_in_bed, genelist)
-    genes_not_in_list = get_genes_from_bed_not_in_request(genes_in_bed, genelist)
-    
     with open('{}_report.txt'.format(targetname), 'w') as f:
         f.write('Wel in lijst, niet in BED:\n')
         if len(genes_not_in_bed) > 0:
@@ -135,17 +104,27 @@ if __name__ == "__main__":
             f.write('{}\n\n'.format(', '.join(genes_not_in_list)))
         else:
             f.write('Geen\n\n')
-   
-    with open('{}_target.annotated'.format(targetname), 'w') as f:
-        for line in bed_annotated:
+
+        f.write('Niet in genregio:\n')
+        if len(nogene_targets) > 0:
+            for target in nogene_targets:
+                chromosome, start, end, _gene = target
+                f.write('{}:{}-{}\n'.format(chromosome, start, end))
+        else:
+            f.write('Geen\n\n')
+
+
+def write_annotated_bed(bed, targetname):
+    with open('{}.annotated'.format(targetname), 'w') as f:
+        for line in bed:
             chromosome, start, end, gene = line
             f.write('{}\t{}\t{}\t{}\n'.format(chromosome, start, end, gene))
+    
 
-    logger.info('Annotated BED created.')
-                
+def write_generegion_bed(genes, targetname, nogene_regions):
     with open('{}_generegions.bed'.format(targetname), 'w') as f:
         regions_done = list()
-        for gene in genelist:
+        for gene in genes:
             for region in TA.get_region(gene):
                 if region in regions_done:
                     continue
@@ -156,8 +135,8 @@ if __name__ == "__main__":
             chromosome, start, end, gene = region
             f.write('{}\t{}\t{}\t{}\n'.format(chromosome, start, end, gene))
 
-    logger.info('Generegions BED created.')                
-    
+
+def write_picard_targetfile(bed, targetname):
     picard_header = get_picard_header()
     with open('{}_target.interval_list'.format(targetname), 'w') as f:
         for line in picard_header:
@@ -165,6 +144,55 @@ if __name__ == "__main__":
         for line in bed_annotated:
             chromosome, start, end, _gene = line
             f.write('{}\t{}\t{}\t+\t{}\n'.format(chromosome, start, end, targetname))
-        
-    logger.info('Picard target created.')            
-        
+
+
+def write_genelist_to_json(genes, targetname):
+    with open('{}_genes.json'.format(targetname), 'w') as f:
+        json.dump(genes, f)
+
+
+if __name__ == "__main__":
+    basedir = os.path.dirname(os.path.realpath(__file__))
+    log = os.path.join(basedir, 'samplesheets.log')
+    logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s')
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.DEBUG)
+
+    parser = argparse.ArgumentParser(description="Check BED for targetrepo")
+    parser.add_argument('-b', '--bedfile', type=str, required=True,
+                        help='BED-file to check')
+    parser.add_argument('-g', '--genes', type=str,
+                        help='Genelist to check')
+
+    args = parser.parse_args()
+    genelist_inputfile = args.genes
+    bed_input = args.bedfile
+    bed_merged = merge_bed(bed_input)
+    logger.info('BED merged.')
+
+    base = os.path.basename(bed_input)
+    targetname, ext = os.path.splitext(base)
+
+    if genelist_inputfile:
+        TA = TargetAnnotation(bed_merged, genes=genelist_inputfile)
+        bed_annotated = TA.annotate_bed_and_filter_genes()
+
+        genelist = TA.genes
+        nogene_targets = get_nogene_targets(bed_annotated)
+        genes_in_bed = get_genes_in_bed(bed_annotated)
+        genes_not_in_bed = get_genes_from_request_not_in_bed(genes_in_bed, genelist)
+        genes_not_in_list = get_genes_from_bed_not_in_request(genes_in_bed, genelist)
+
+        write_report(genes_not_in_bed, genes_not_in_list, nogene_targets, targetname)
+        write_generegion_bed(genelist, targetname, nogene_targets)
+        logger.info('Generegions BED created.')
+        write_genelist_to_json(genelist, targetname)
+
+    else:
+        TA = TargetAnnotation(bed_merged, genes=genelist_inputfile)
+        bed_annotated = TA.annotate_bed_and_filter_genes()
+
+    write_annotated_bed(bed_annotated, targetname)
+    logger.info('Annotated BED created.')
+    write_picard_targetfile(bed_annotated, targetname)
+    logger.info('Picard target created.')
