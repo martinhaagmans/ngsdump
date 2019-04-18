@@ -65,13 +65,13 @@ def get_coverage_per_exon(bam_file, bed_file):
             counts.append(int(count)) 
             
         elif nm != current_nm:
-            counts_percentage = counts_percentage + [c / total for c in counts]
+            counts_percentage = counts_percentage + [(c / total, c) for c in counts]
             counts = list()
             total = 0
             counts.append(int(count)) 
             total += int(count)
             current_nm = nm
-    counts_percentage = counts_percentage + [c / total for c in counts]
+    counts_percentage = counts_percentage + [(c / total, c) for c in counts]
     return counts_percentage
 
 
@@ -97,12 +97,15 @@ def main(bam_files, bed_file, output_file, correct):
     
     with open(output_file, 'w') as f:
         f.write(f'Chr\tStart\tEnd\tNM\t{region_type}\t')
-        f.write('\t'.join(samples))
+        for sample in samples:
+            f.write(f'{sample} % totaal\t{sample} totaal reads\t')
         f.write('\n')
         for i, region in enumerate(regions):
             chrom, start, end, nm, exon = region
             f.write(f'{chrom}\t{start}\t{end}\t{nm}\t{exon}\t')
-            [f.write(f'{output[sample][i]}\t') for sample in samples]
+            for sample in samples:
+                perc, readcount = output[sample][i]        
+                f.write(f'{perc}\t{readcount}\t')
             f.write('\n')            
 
 

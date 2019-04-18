@@ -123,3 +123,16 @@ export PYTHONDONTWRITEBYTECODE=1
 
 #my aliases
 alias rm='rm -i'
+## pyenv configs
+export PYENV_ROOT="$HOME/.pyenv"
+export PATH="$PYENV_ROOT/bin:$PATH"
+
+if command -v pyenv 1>/dev/null 2>&1; then
+  eval "$(pyenv init -)"
+fi
+
+export PATH=${PATH}:/home/mahaagmans/programs/hisat2-2.1.0/
+export PATH=${PATH}:/usr/bin/python3
+export PATH=${PATH}:/home/mahaagmans/programs/minimap2-2.16_x64-linux
+export PATH=${PATH}:/home/mahaagmans/programs/nanopolish
+#export PATH=/home/mahaagmans/.pyenv/shims:/home/mahaagmans/.pyenv/bin:/home/mahaagmans/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/home/mahaagmans/Documents/hisat2-2.1.0/:/usr/bin/python3:/home/mahaagmans/programs/minimap2-2.16_x64-linux:/home/mahaagmans/programs/nanopolish:/home/mahaagmans/miniasm
