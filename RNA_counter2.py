@@ -1,3 +1,5 @@
+import os
+import csv
 import glob
 import argparse
 import subprocess
@@ -113,12 +115,13 @@ def get_counts_per_region(ucsc_bed, bamfile):
 
 
 def write_bed_counts_per_region(sample, bed_counts_per_region):
-    with open(f'{sample}_count.bed', 'w') as f:
+    bedfile = f'{sample}_count.bed'
+    with open(bedfile, 'w') as f:
         for line in bed_counts_per_region:
             line = str(line).rsplit()
 
             (ucsc_chrom, ucsc_start, ucsc_end, nmnr, exon, 
-              _, _, _ ,count, count_stdev, overlap) = line
+              _, _, _ ,count, count_stdev, _overlap) = line
             if count == '.':
                 count = 0
             else:
@@ -130,27 +133,112 @@ def write_bed_counts_per_region(sample, bed_counts_per_region):
 
             f.write(f'{ucsc_chrom}\t{ucsc_start}\t{ucsc_end}\t'
                     f'{nmnr}\t{exon}\t{count}\t{count_stdev}\n')    
+    return bedfile
+
+                    
+def fastq_to_bed(sample, readdir, reference, ucsc_bed):
+    r1, r2 = get_reads(sample, readdir)
+    bamfile = align_reads(sample, r1, r2, reference)
+    counts_per_region = get_counts_per_region(ucsc_bed, bamfile)
+    bedfile = write_bed_counts_per_region(sample, counts_per_region)
+    return bedfile
 
 
-if __name__ == '__main__':
+def get_percentage_coverage_per_exon(bedfile):
+    total = 0
+    counts = list()
+    stdevs = list()
+    current_nm = str()
+    counts_percentage = list()
 
-    REF = "/home/mahaagmans/Documents/referentie/hisat/grch37_tran/genome_tran"
-    
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--sample", required=True, help="SampleID(s)")
-    parser.add_argument("--reads", required=True, help="Directory with read files for sample")
-    parser.add_argument("--bedfile", required=True, help="UCSC bed")
-    parser.add_argument("--reference", default=REF, help="Hisat reference")                        
+    with open(bedfile) as f:
+        for line in f:
+            _, _, _, nm, _, count, std = line.split()
 
-    args = parser.parse_args()
-    sample = args.sample
+            if not current_nm:
+                current_nm = nm
+                total += int(count)
+                counts.append(int(count))
+                stdevs.append(std)
+            elif nm == current_nm:
+                total += int(count)
+                counts.append(int(count)) 
+                stdevs.append(std)                
+            elif nm != current_nm:
+                counts_percentage = counts_percentage + [(round(100*(c / total), 1), c, s) for c, s in zip(counts, stdevs)]
+                counts = list()
+                stdevs = list()
+                total = 0
+                counts.append(int(count)) 
+                stdevs.append(std)                
+                total += int(count)
+                current_nm = nm
+        counts_percentage = counts_percentage + [(round(100*(c / total), 1), c, s) for c, s in zip(counts, stdevs)]
+    return counts_percentage
+
+
+def get_regions_from_bed(bedfile):
+    regions = list()
+    with open(bedfile) as f:
+        for line in f:
+            if line in ['\n', '\r\n']:
+                continue
+            chrom, start, end, nm,  region_number = line.split()
+            regions.append((chrom, start, end, nm, region_number))
+    return regions
+
+
+def main(args):
+
+    samples = args.samples
     reference = args.reference
     readdir = args.reads
     ucsc_bed = args.bedfile
-
-    r1, r2 = get_reads(sample, readdir)
-    bamfile = align_reads(sample, r1, r2, reference)
+    output_file = args.output
     
-    counts_per_region = get_counts_per_region(ucsc_bed, bamfile)
-    write_bed_counts_per_region(sample, counts_per_region)
+    output = dict()
+    regions = get_regions_from_bed(ucsc_bed)
+    
+    for sample in samples:
+        bedfile = fastq_to_bed(sample, readdir, reference, ucsc_bed)
+        output[sample] = get_percentage_coverage_per_exon(bedfile)
+
+    
+    with open(output_file, 'w') as f:
+        csv_writer = csv.writer(f)
+        header = ['Chr', 'Start', 'End', 'NM', 'Exon']
+        for sample in samples:
+            header.append(f'%totaal {sample}')
+            header.append(f'#reads {sample}') 
+            header.append(f'StDev {sample}')
+        
+        csv_writer.writerow(header)
+
+        for i, region in enumerate(regions):
+            out = list()
+            for sample in samples:
+                out = out + list(output[sample][i])
+           
+            out = list(region) + out
+            csv_writer.writerow(out) 
+   
+
+if __name__ == '__main__':
+    HOME = os.path.expanduser('~')
+    REF =os.path.join(HOME, 
+                      'Documents', 
+                      'referentie', 
+                      'hisat', 
+                      'grch37_tran', 
+                      'genome_tran')
+
+    
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--samples", required=True, nargs='*', help="SampleID(s)")
+    parser.add_argument("--reads", required=True, help="Directory with read files for sample(s)")
+    parser.add_argument("--bedfile", required=True, help="UCSC bed")
+    parser.add_argument("--output", required=True, help="UCSC bed")
+    parser.add_argument("--reference", default=REF, help="Hisat reference")                        
+
+    main(parser.parse_args())
 
