@@ -106,6 +106,43 @@ def parse_reads_per_locus(reads_per_locus):
     bed_counts = pybedtools.BedTool(sorted(interval_average))
     return bed_counts
 
+
+def parse_uscs_bed(bed_file):
+    d = dict()
+    file_location, file_name = os.path.split(bed_file)
+    file_name, file_extension = os.path.splitext(file_name)
+    corrected_file = os.path.join(file_location, 
+                                  f'{file_name}_corrected{file_extension}')
+
+    with open(bed_file) as f_in:
+        for line in f_in:
+            if line in ['\n', '\r\n']:
+                continue
+            chrom, start, end, info, *_ = line.split()
+            info = info.split('_')
+            nm = f'NM_{info[1]}'
+            region_type = info[2]
+            region_number = int(info[3])
+            strand = info[-1]
+            
+            if nm in d:
+                d[nm].append((chrom, start, end, nm, region_number, strand))
+            else:
+                d[nm] = [(chrom, start, end, nm, region_number, strand)]
+
+    with open(corrected_file, 'w') as f_out:
+        for nm, info in d.items():
+            for region in info:
+                chrom, start, end, nm, region_number, strand = region
+                if strand == 'f':
+                    region_number += 1
+                elif strand == 'r':
+                    region_number = -1 * (region_number - len(info))
+                chrom = chrom.replace('chr', '')
+                f_out.write(f'{chrom}\t{start}\t{end}\t{nm}\t{region_number}\n')
+            
+    return corrected_file
+
     
 def get_counts_per_region(ucsc_bed, bamfile):
     reads_per_locus = get_reads_per_locus(bamfile)
@@ -195,6 +232,8 @@ def main(args):
     readdir = args.reads
     ucsc_bed = args.bedfile
     output_file = args.output
+    
+    ucsc_bed = parse_uscs_bed(ucsc_bed)
     
     output = dict()
     regions = get_regions_from_bed(ucsc_bed)
