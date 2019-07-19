@@ -1,8 +1,3 @@
-import sqlite3
-import xlsxwriter
-from ngsscriptlibrary import MetricsDBReader
-from ngsscriptlibrary import get_rs_gpos_dict
-
 def write_list(listname, worksheet, row=0, col=0, skip=1, header=False,
                orientation='rows', format=None, formatheader=None):
     if header:
@@ -33,12 +28,12 @@ class CreateReport:
         if db_targets is None:
             db_targets = 'captures.sqlite'            
         if sample is None and serie is None:
-            raise ValueError('Geen sample of serie opgegeven')
+            raise ValueError('Geen sample en serie opgegeven')
         elif sample is not None and serie is None:
             sql = "SELECT * FROM todo WHERE SAMPLE='{}'".format(sample)
         elif sample is None and serie is not None:
             sql = "SELECT * FROM todo WHERE SERIE='{}'".format(serie)
-        elif sample is not None and serie is not None:
+        if sample is not None and serie is not None:
             sql = "SELECT * FROM todo WHERE (SERIE='{}' AND SAMPLE='{}')".format(serie, sample)
         
         conn = sqlite3.connect(db_samplesheet)
@@ -354,8 +349,26 @@ class CreateReport:
                     row5, col5 = write_list(line.split(), ws5, row=row5, orientation='cols')
             
         
-        
-        
+if __name__ == '__main__':
+    import sqlite3
+    import argparse
+    import xlsxwriter
+
+    from ngsscriptlibrary import MetricsDBReader
+    from ngsscriptlibrary import get_rs_gpos_dict
+
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-s", "--serie", type=str, 
+                        help="Miseq serie nummer", required=True)
+    parser.add_argument("--sample", type=str,
+                        help="Miseq sampleID", required=True)
+
+    args = parser.parse_args()
+    sample = args.sample
+    serie = args.serie
+    CreateReport(sample=sample, serie=serie).write_excel()
+
         
 
     
