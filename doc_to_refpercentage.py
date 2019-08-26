@@ -1,4 +1,5 @@
 # coding: utf-8
+import os
 import csv
 import pysam
 import argparse
@@ -6,6 +7,9 @@ import pandas as pd
 
 from collections import namedtuple
 
+def remove_extension(fn):
+    fnbase, fnext = os.path.splitext(fn)
+    return fnbase
 
 def parse_doc(fn, ref, loci):
     data = dict()
@@ -41,17 +45,17 @@ def parse_doc(fn, ref, loci):
 def get_loci_from_docfile(docfile):
     loci = list()
     with open(docfile) as f:
-        header = next(f)
+        _header = next(f)
         for line in f:
             locus, *_ = line.split()
             loci.append(locus)
     return loci
 
 
-def get_ref_dict(REFERENCE):
+def get_ref_dict(ref, loci):
     refd = dict()
     for locus in loci:
-        base = pysam.faidx(REFERENCE,
+        base = pysam.faidx(ref,
                            '{}:{}-{}'.format(locus.split(':')[0],
                                              locus.split(':')[1],
                                              locus.split(':')[1])
@@ -90,6 +94,37 @@ def create_output(outfile, sample_data, control_data, loci, allIDs):
 
             f_out.write('\n')
 
+def collect_data(doc_sample, doc_control, loci, ref):
+    
+    refd = get_ref_dict(ref, loci)
+
+    data_sample = list()
+    data_control = list()
+    allIDs = list()
+
+    if len(doc_sample) == 1:
+        data_sample.append(parse_doc(doc_sample[0], refd, loci))
+        allIDs.append(remove_extension(doc_sample))
+    else:
+        for doc in doc_sample:
+            data_sample.append(parse_doc(doc, refd, loci))
+            allIDs.append(remove_extension(doc))
+
+    if len(doc_control) == 1:
+        data_control.append(parse_doc(doc_control[0], refd, loci))
+        allIDs.append(remove_extension(doc_control[0]))
+    else:
+        for doc in doc_control:
+            data_control.append(parse_doc(doc, refd, loci))
+            allIDs.append(remove_extension(doc))
+    return data_sample, data_control, allIDs
+
+
+def main(doc_sample, doc_control, ref, output):
+    loci = get_loci_from_docfile(doc_sample[0])
+    data_sample, data_control, allIDs = collect_data(doc_sample, doc_control, loci, ref)
+    create_output(output, data_sample, data_control, loci, allIDs)    
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -105,31 +140,10 @@ if __name__ == '__main__':
                         help="Output file name")
 
     args = parser.parse_args()
-
+    output = args.output
+    ref = args.reference
     doc_sample = args.sample
     doc_control = args.control
 
-    loci = get_loci_from_docfile(doc_sample[0])
-    refd = get_ref_dict(args.reference)
+    main(doc_sample, doc_control, ref, output)
 
-    data_sample = list()
-    data_control = list()
-    allIDs = list()
-
-    if len(args.sample) == 1:
-        data_sample.append(parse_doc(args.sample[0], refd, loci))
-        allIDs.append(args.sample[0].split('.')[0])
-    else:
-        for _ in args.sample:
-            data_sample.append(parse_doc(_, refd, loci))
-            allIDs.append(_.split('.')[0])
-
-    if len(args.sample) == 1:
-        data_control.append(parse_doc(args.control[0], refd, loci))
-        allIDs.append(args.control[0].split('.')[0])
-    else:
-        for _ in args.control:
-            data_control.append(parse_doc(_, refd, loci))
-            allIDs.append(_.split('.')[0])
-
-    create_output(args.output, data_sample, data_control, loci, allIDs)
