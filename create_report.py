@@ -29,55 +29,36 @@ class CreateReport:
             db_targets = 'captures.sqlite'            
         if sample is None and serie is None:
             raise ValueError('Geen sample en serie opgegeven')
-        elif sample is not None and serie is None:
-            sql = "SELECT * FROM todo WHERE SAMPLE='{}'".format(sample)
-        elif sample is None and serie is not None:
-            sql = "SELECT * FROM todo WHERE SERIE='{}'".format(serie)
-        if sample is not None and serie is not None:
-            sql = "SELECT * FROM todo WHERE (SERIE='{}' AND SAMPLE='{}')".format(serie, sample)
+
+        sql = "SELECT * FROM todo WHERE (SERIE='{}' AND SAMPLE='{}')".format(serie, sample)
+
         
         conn = sqlite3.connect(db_samplesheet)
         c = conn.cursor()
         c.execute(sql)
-        
-        self.todo = dict()
-        self.db_metrics = db_metrics
-        
-        for _ in c.fetchall():
-            serie, sample, genesis, capture, pakket, panel, cnv_screen, cnv_diag, mosa = _
-            self.todo[sample] = dict()
-            self.todo[sample]['serie'] = serie
-            self.todo[sample]['genesis'] = genesis
-            self.todo[sample]['capture'] = capture
-            self.todo[sample]['pakket'] = pakket
-            self.todo[sample]['panel'] = panel
-            self.todo[sample]['cnv_screen'] = bool(cnv_screen)
-            self.todo[sample]['cnv_diag'] = bool(cnv_diag)
-            self.todo[sample]['mosa'] = bool(mosa)
-            
+        _serie, _sample, genesis, capture, pakket, panel, cnv_screen, cnv_diag, mosa = c.fetchone()
         conn.close()
-        
         conn = sqlite3.connect(db_targets)
         c = conn.cursor()
-
-        for sample in self.todo:
-            cap, v = self.todo[sample]['capture'].split('v')
-            c.execute("SELECT oid FROM captures WHERE (capture='{}' AND versie='{}')".format(cap, v))
-            oid = c.fetchone()[0]
-            self.todo[sample]['oid'] = oid
-        
+        cap, v = capture.split('v')
+        c.execute("SELECT oid FROM captures WHERE (capture='{}' AND versie='{}')".format(cap, v))
+        oid = c.fetchone()[0]
         conn.close()
+                
+        self.db_metrics = db_metrics
+        self.sample = sample
+        self.serie = serie
+        self.genesis = genesis
+        self.capture = capture
+        self.pakket = pakket
+        self.panel = panel
+        self.cnv_screen = bool(cnv_screen)
+        self.cnv_diag = bool(cnv_diag)
+        self.mosa = bool(mosa)
+        self.oid = oid
+
             
-        
-        self.conn = sqlite3.connect(db_metrics)
-        self.c = self.conn.cursor()
-            
-    def write_excel(self, sample=None):
-    
-        if sample is None and not self.sample:
-            raise ValueError('Geen sample opgegeven')
-        elif sample is None:            
-            sample = self.sample
+    def write_excel(self):
     
         REF = 'lifescope.hg19.fa'
         DBSNP = 'dbsnp137.hg19.vcf'
@@ -85,14 +66,11 @@ class CreateReport:
         PICARD = 'picard-tools 1.95'
         BWA = 'bwa-mem 0.7.12-r1039'
 
-        serie = self.todo[sample]['serie']
-        capture = self.todo[sample]['capture']            
-    
-        wb = xlsxwriter.Workbook('{}.xlsx'.format(sample))
+        wb = xlsxwriter.Workbook('{}.xlsx'.format(self.sample))
         wb.set_properties({
-            'title':    sample,
+            'title':    self.sample,
             'subject':  'MiSEQUENCING',
-            'author':   'Martin Haagmans',
+            'author':   'Scipio Aricanus',
             'comments': 'Created with Python and XlsxWriter'})
             
         ws1 = wb.add_worksheet('patient + Miseq info')
@@ -141,9 +119,9 @@ class CreateReport:
                 'Recalibrate dbSNP', 'Referentie', 'Aligner']
 
         INFODATA = ['{}'.format(sample),
-                    '{}'.format(self.todo[sample]['pakket']),
-                    '{}'.format(self.todo[sample]['panel']),
-                    '{}'.format(self.todo[sample]['oid']),
+                    '{}'.format(self.pakket),
+                    '{}'.format(self.panel),
+                    '{}'.format(self.oid),
                     '{}'.format(PICARD),
                     '{}'.format(GATK),
                     '{}'.format(DBSNP),
@@ -164,8 +142,8 @@ class CreateReport:
         SANGER = ['Gen', 'Chr.', 'g.Start', 'g.Eind', 'Resultaat',
                   'Paraaf analist', 'Paraaf staf']
 
-        MR = MetricsDBReader(self.db_metrics, sample, serie,
-                             capture)
+        MR = MetricsDBReader(self.db_metrics, self.sample, 
+                             self.serie, self.pakket)
 
         ws1.write(1, 1, sample)
         samenvatting = '''=B4&"("&B2&" + "&B3&"; " &B5&", "&B6&", "&B7&")"'''
@@ -212,10 +190,7 @@ class CreateReport:
                                 skip=3, orientation='cols', format=underlined)
 
         sangers = MR.get_sanger_fragments()
-#            df_serie = standaardfragmenten_naar_df(standaardfragmenten)
-#            standaard = standaardfragmenten_dict_sample(sample, df_serie)
         standaard = list()
-
         
         if 'Geen sangers:' in sangers:
             ws2.set_column('A:A', 26)
@@ -359,7 +334,7 @@ if __name__ == '__main__':
 
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-s", "--serie", type=str, 
+    parser.add_argument("--serie", type=str, 
                         help="Miseq serie nummer", required=True)
     parser.add_argument("--sample", type=str,
                         help="Miseq sampleID", required=True)
@@ -368,7 +343,4 @@ if __name__ == '__main__':
     sample = args.sample
     serie = args.serie
     CreateReport(sample=sample, serie=serie).write_excel()
-
-        
-
     
