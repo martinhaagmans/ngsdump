@@ -185,7 +185,7 @@ class CreateReport:
 
         row1, col1 = write_list(INFODATA, ws1, row=row1 - len(INFO) - 2, col=1)
 
-        row2, col2 = write_list(SANGER, ws2, formatheader=headerformat,
+        row2, _col2 = write_list(SANGER, ws2, formatheader=headerformat,
                                 header='NON-CALLABLE SANGER FRAGMENTEN',
                                 skip=3, orientation='cols', format=underlined)
 
@@ -196,10 +196,10 @@ class CreateReport:
             ws2.set_column('A:A', 26)
             sangers = [sangers]
             [sangers.append(' ') for _ in range(len(SANGER))]
-            row2, col2 = write_list(sangers, ws2, row=row2-1, col=0,
+            row2, _col2 = write_list(sangers, ws2, row=row2-1, col=0,
                                     orientation='cols')
 
-            row2, col2 = write_list([' ', 'Paraaf staf voor gezien: '],
+            row2, _col2 = write_list([' ', 'Paraaf staf voor gezien: '],
                                     ws2, row=row2, col=0)
         else:
             for line in sangers:
@@ -218,17 +218,17 @@ class CreateReport:
                         score = ' '
 
                 out = [gene, chrom, start, end , score]
-                row2, col2 = write_list(out, ws2, row=row2, col=0,
+                row2, _col2 = write_list(out, ws2, row=row2, col=0,
                                         orientation='cols')
 
         ws3.write(3, 11, 'Paraaf', underlined)
         ws3.write(4, 10, 'Eerste beoordeling: ')
 
-        row3, col3 = write_list(VARS, ws3, formatheader=headerformat,
+        row3, _col3 = write_list(VARS, ws3, formatheader=headerformat,
                                 header='VARIANTEN IN BRIEF',
                                 skip=2, orientation='cols', format=underlined)
 
-        row3, col3 = write_list(VARS2, ws3, formatheader=headerformat,
+        row3, _col3 = write_list(VARS2, ws3, formatheader=headerformat,
                                 header='GENESIS NOTATIE', row=row3 + 12,
                                 orientation='cols', format=underlined)
 
@@ -246,11 +246,11 @@ class CreateReport:
             VARS3 = ['', gennaam, cnotatie, gnotatie, pnotatie,  '', chromosoom,
                      nmnummer, 'GRCh37', sample]
 
-            row3, col3 = write_list(VARS3, ws3, formatheader=headerformat,
+            row3, _col3 = write_list(VARS3, ws3, formatheader=headerformat,
                                     header=False, row=row3,
                                     orientation='cols')
 
-        row3, col3 = write_list(VARS4, ws3, formatheader=headerformat,
+        row3, _col3 = write_list(VARS4, ws3, formatheader=headerformat,
                                 header='CNV', row=row3 + 2,
                                 orientation='cols', format=underlined)
         ws3.data_validation(row3, 0, row3+3, 0,
@@ -285,7 +285,7 @@ class CreateReport:
             cnv_excluded = 'output/CNV_{}/excluded.txt'.format(capture)
 
             if not os.path.isfile(cnv_calls):
-                row4, col4 = write_list(['Geen calls', '',
+                row4, _col4 = write_list(['Geen calls', '',
                                          'Paraaf NGS-connaisseur voor gezien: ',
                                          'Paraaf staf voor gezien: '], ws4)
                 ws4.set_column('A:A', 35)
@@ -299,32 +299,33 @@ class CreateReport:
                     header.insert(0, 'Regio')
                     header.append('Opmerking')
                     header.append('Paraaf NGS-connaisseur')
-                    row4, col4 = write_list(header, ws4, formatheader=headerformat,
+                    row4, _col4 = write_list(header, ws4, formatheader=headerformat,
                                             header='CNV calls', orientation='cols',
                                             format=underlined)
 
                     for line in f:
-                        row4, col4 = write_list(line.split(), ws4, row=row4, orientation='cols')
+                        row4, _col4 = write_list(line.split(), ws4, row=row4, orientation='cols')
 
             with open(cnv_excluded, 'r') as f:
                 header = next(f)
                 header = list(header.split())
                 header.insert(0, 'Regio')
-                row5, col5 = write_list(header, ws5, formatheader=headerformat,
+                row5, _col5 = write_list(header, ws5, formatheader=headerformat,
                                         header='CNV excluded regions', orientation='cols',
                                         format=underlined)
                 for line in f:
-                    row5, col5 = write_list(line.split(), ws5, row=row5, orientation='cols')
+                    row5, _col5 = write_list(line.split(), ws5, row=row5, orientation='cols')
 
             with open(cnv_archive, 'r') as f:
-                row5, col5 = write_list([], ws5, formatheader=headerformat,
+                row5, _col5 = write_list([], ws5, formatheader=headerformat,
                                         header='CNV archive samples', orientation='cols',
                                         format=underlined, row=row5 + 4)
                 for line in f:
-                    row5, col5 = write_list(line.split(), ws5, row=row5, orientation='cols')
+                    row5, _col5 = write_list(line.split(), ws5, row=row5, orientation='cols')
             
         
 if __name__ == '__main__':
+    import os
     import sqlite3
     import argparse
     import xlsxwriter
