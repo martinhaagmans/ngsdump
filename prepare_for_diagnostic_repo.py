@@ -12,7 +12,7 @@ def check_bed_intervals(bed):
     bed_intervals_correct = True
     with open(bed) as f:
         for line in f:
-            c, s, e, *_ = line.split()
+            _c, s, e, *_ = line.split()
             if not s < e:
                 bed_intervals_correct = False
     return bed_intervals_correct
@@ -51,7 +51,7 @@ def check_if_all_intervals_annotated(bed):
     not_annotated_intervals = list()
     for line in bed:
         try:
-            c, s, e, annotation, *_ = line
+            _c, _s, _e, _annotation, *_ = line
         except ValueError:
             not_annotated_intervals.append(line)
     return not_annotated_intervals
@@ -60,7 +60,7 @@ def check_if_all_intervals_annotated(bed):
 def get_genes_in_bed(bed):
     genes_in_bed = list()
     for line in bed:
-        c, s, e, gene, *_ = line
+        _c, _s, _e, gene, *_ = line
         genes_in_bed.append(gene)
     return genes_in_bed
 
@@ -84,7 +84,7 @@ def get_genes_from_bed_not_in_request(genes_in_bed, genes_requested):
 def get_nogene_targets(bed):
     nogene_regions = list()
     for line in bed:
-        c, s, e, gene, *_ = line
+        _c, _s, _e, gene, *_ = line
         if gene == 'NOGENE':
             nogene_regions.append(line)
     return nogene_regions
