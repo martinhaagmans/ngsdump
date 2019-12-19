@@ -4,6 +4,7 @@ import json
 import logging
 import sqlite3
 
+logging.basicConfig(format='%(levelname)s: %(message)s')
 
 class SNPcheck:
 
@@ -106,8 +107,6 @@ class SNPcheck:
 
 if __name__ == '__main__':
     import argparse
-    
-    logging.basicConfig(format='%(levelname)s: %(message)s')
     
     parser = argparse.ArgumentParser()
     parser.add_argument("-s", "--sample", type=str, 
