@@ -69,7 +69,7 @@ class SNPcheck:
         all_ngs_snpcheck_strings = dict()
         for sample in samples:
             ngs_snpcheck_string = list()
-            for locus, call in sorted(snpcheck[sample]['NGS'].items()):
+            for _locus, call in sorted(snpcheck[sample]['NGS'].items()):
                 ngs_snpcheck_string.append(call)
             ngs_snpcheck_string = ''.join(ngs_snpcheck_string)
             all_ngs_snpcheck_strings[sample] = ngs_snpcheck_string
@@ -81,7 +81,7 @@ class SNPcheck:
         all_alt_snpcheck_strings = dict()
         for sample in samples:
             alt_snpcheck_string = list()
-            for locus, call in sorted(snpcheck[sample]['ALT'].items()):
+            for _locus, call in sorted(snpcheck[sample]['ALT'].items()):
                 alt_snpcheck_string.append(call)
             alt_snpcheck_string = ''.join(alt_snpcheck_string)
             all_alt_snpcheck_strings[sample] = alt_snpcheck_string
@@ -97,7 +97,7 @@ class SNPcheck:
             sys.exit()
         for sample, snpcheck in all_snpchecks.items():
             if snpcheck_to_check == snpcheck:
-                has_same_ngs_snpcheck.add(snpcheck_to_check)
+                has_same_ngs_snpcheck.add(sample)
                 
         return has_same_ngs_snpcheck
 
@@ -105,11 +105,6 @@ class SNPcheck:
 
 
 if __name__ == '__main__':
-    import os
-    import sys
-    import json
-    import logging
-    import sqlite3
     import argparse
     
     logging.basicConfig(format='%(levelname)s: %(message)s')
@@ -121,8 +116,4 @@ if __name__ == '__main__':
                         help="Metrics database", required=True)                        
                         
     args = parser.parse_args()
-    # SNPcheck(args.sample, args.database).compare_ngs_snpchecks()
-    # SNPcheck(args.sample, args.database).get_all_alt_snpcheck_strings()['19D13350']
-    print(SNPcheck(args.sample, args.database).get_all_snpchecks()['19D13350'])
-
-                        
+    print(SNPcheck(args.sample, args.database).compare_ngs_snpchecks())
