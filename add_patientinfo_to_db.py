@@ -20,8 +20,13 @@ def add_to_db(data):
     c = conn.cursor()    
     for line in data:
         serie, sample, sex, ff, dob = line.split()
+        sex = sex.upper()
+        ff = ff.upper()
+        sql = """INSERT INTO patientinfo 
+        VALUES ("{}", "{}", "{}", "{}", "{}")
+        """.format(serie, sample, sex, ff, dob)
         try:
-            c.execute('INSERT INTO patientinfo VALUES ("{}", "{}", "{}", "{}", "{}")'.format(serie, sample, sex, ff, dob))
+            c.execute(sql)
         except sqlite3.IntegrityError as e:
             print(e)
         else:
