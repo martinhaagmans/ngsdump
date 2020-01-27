@@ -1,3 +1,4 @@
+import os
 import sqlite3
 
 DB = '/data/dnadiag/databases/patientinfo.sqlite'
@@ -5,7 +6,8 @@ DB = '/data/dnadiag/databases/patientinfo.sqlite'
 
 def read_patientinfo(patientinfo):
     data = list()
-    serie = patientinfo.split('_')[0].replace('MS', '')
+    _folder, fn = os.path.split(patientinfo)
+    serie = fn.split('_')[0].replace('MS', '')
     with open(patientinfo) as f:
         for line in f:
             if line not in ['\n', '\r\n']:
