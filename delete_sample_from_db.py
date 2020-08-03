@@ -23,8 +23,12 @@ class DeleteSample:
                 WHERE (SAMPLE='{self.sample}' 
                 AND SERIE='{self.serie}')
                 """
-            self.c.execute(sql)
-            self.conn.commit()
+            try:
+                self.c.execute(sql)
+            except sqlite3.OperationalError as e:
+                print(table, e)
+            else:
+                self.conn.commit()
 
 
     
