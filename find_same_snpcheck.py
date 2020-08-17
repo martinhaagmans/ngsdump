@@ -3,6 +3,7 @@ import sys
 import json
 import logging
 import sqlite3
+import argparse
 
 logging.basicConfig(format='%(levelname)s: %(message)s')
 
@@ -36,7 +37,7 @@ def find_snpcheck(sample_to_check, serie_to_check, db):
                 snpcheck_alt_calls.append(snpcheck_alt[locus])
                 snpcheck_ngs_calls.append(snpcheck_ngs_to_check[locus])
         if snpcheck_alt_calls == snpcheck_ngs_calls and len(snpcheck_alt_calls) > 9:
-            logging.message(sample_to_check, sample, serie)
+            print(sample_to_check, sample, serie)
             
 
 if __name__ == "__main__":
@@ -52,4 +53,5 @@ if __name__ == "__main__":
     database = args.database
     sample = args.sample
     serie = args.serie
+    find_snpcheck(sample, serie, database)
 
