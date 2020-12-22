@@ -27,6 +27,7 @@ class DeleteSerie:
                 print(table, e)
             else:
                 self.conn.commit()
+        self.c.execute("VACUUM")
 
 
     
