@@ -23,6 +23,7 @@ def add_to_db(data):
         sex = sex.upper()
         ff = ff.upper()
         sql = """INSERT INTO patientinfo 
+        (SERIE, SAMPLE, SEX, FF, DOB)
         VALUES ("{}", "{}", "{}", "{}", "{}")
         """.format(serie, sample, sex, ff, dob)
         try:
