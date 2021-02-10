@@ -11,6 +11,8 @@ def parse_input(input_file):
         patient_info = list()
         for line in reader:
             serie, sample, material, sex, request, dob, deadline = line
+            if not serie.startsqith('CTD'):
+                serie = 'CTD{}'.format(serie)
             patient_info.append([serie, sample, sex, request, dob, deadline])
             if not material.lower() == 'bld':
                 cnv_info.append([serie, sample, material])
