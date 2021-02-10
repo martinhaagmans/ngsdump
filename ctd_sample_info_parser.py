@@ -33,7 +33,12 @@ def add_patient_info_to_db(patient_info):
         (SERIE, SAMPLE, SEX, FF, DOB, DEADLINE)
         VALUES ("{}", "{}", "{}", "{}", "{}", "{}")
         """.format(serie, sample, sex, request, dob, deadline)
-        c.execute(sql)
+        try:
+            c.execute(sql)
+        except sqlite3.IntegrityError as e:
+            print(e)
+        else:
+            conn.commit()
         conn.commit()
     conn.close()
     return
