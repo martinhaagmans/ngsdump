@@ -66,7 +66,7 @@ if __name__ == '__main__':
     parser.add_argument("-db", "--database", type=str, 
                         help="Database", required=True)
     parser.add_argument("-c", "--capture", type=str, 
-                        help="Database", required=True)                        
+                        help="Capturenaam", required=True)                        
     args = parser.parse_args()
     
     db = args.database
